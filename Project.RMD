@@ -1,0 +1,119 @@
+---
+title: "REGRESSION MODELS PROJECT"
+author: "A.M"
+date: "Monday, December 8, 2015"
+output:
+  pdf_document:
+    fig_caption: yes
+---
+Using this dataset `mtcars` of a collection of cars:             
+1.Is an automatic or manual transmission better for MPG?  
+2.Quantify the MPG difference between automatic and manual transmissions.
+```{r echo=FALSE, results='hide'}
+str(mtcars)
+```
+```{r, echo=FALSE, results='hide'}
+mtcars$carname <- row.names(mtcars)
+```
+##Executive Summary##  
+Using this dataset of 32 cars with 11 variables and forward selection regression modelling, manual transmission is better for fuel efficiency. The final model uses 4 features for prediction: transmission, weight, interaction between transmission and weight, and 1/4 mile time.
+
+Transmission type alone accounts for about 34% variability in fuel efficiency. The number of cylinders which has a good correlation with the miles consumed per gallon (`r cor(mtcars$mpg,mtcars$cyl)`) and other predictors in the dataset do not improve the predictive power of the model. The elimination of 3 outliers(Chrysler Imperial, Masserati Bora, and Fiat 128) with high leverage and influnece from the final model increases accuracy of prediction.Any further outlier deletion does not improve the prediction, and not advisable because of the size of the sample.
+
+The MPG difference between manual and automatic transmission after controlling for other variables is **12.5mpg** with 95% confidence interval between **5.56-19.57** 
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(knitr)
+```
+## Forward model selection
+```{r echo=FALSE}
+model1 <- lm(mpg ~ am, data=mtcars)
+summary(model1)$coefficients
+```
+ 
+```{r echo=FALSE}
+model2 <- lm(mpg~am*wt, data=mtcars)
+summary(model2)$coefficients
+```
+The significant relationship between transmission and *MPG* is fully mediated and moderated by *weight*. In fig. 2, it is clear that cars with automatic transmission are heavier and have lower MPG.
+
+```{r echo=FALSE}
+model3 <- lm(mpg ~ am*wt+qsec, data=mtcars)
+summary(model3)$coefficients
+```
+Adjusted r squared `r summary(model3)$adj.r.squared`
+
+```{r echo=FALSE,results="hide"}
+model4 <- lm(mpg ~ am*wt+qsec+factor(cyl), data=mtcars)
+summary(model4)
+```
+Even though there is a high correlation between the number of cylinders and miles per gallon, it is not statistically significant when added to model 3. See Fig. 3. Also, the addition of other variables in the dataset neither improve the adjusted r squared nor reduce the residual standard error beyond that of model3.
+
+## Diagnostics I
+```{r echo=FALSE}
+anova(model1,model2,model3)
+```
+The addition of other variables(weight, weight and transmission interaction, and 1/4 mile time) to `mtcars$am` significantly improves the model.
+In fig. 4, the errors do not show any significant departure from normality, and there is no systematic variation in the residuals. 
+```{r}
+tail(sort(abs(round(dfbetas(model3)[,2],3))),5)
+     
+tail(sort(abs(round(hatvalues(model3),3))),5)
+
+tail(sort(abs(round(dffits(model3),3))),5)  
+```
+Both Chrysler Imperial and Maserati Bora have a high leverage and influence on the regression model. Fiat and Chrysler Imperial exert the highest influnece on the predicted response.   
+*Remove the three cars from the dataset and run model3 again*
+```{r echo=FALSE}
+mtcarsNew <- filter(mtcars, !mtcars$carname %in% c("Chrysler Imperial","Maserati Bora","Fiat 128"))
+```
+Run model3 with the filtered dataset `mtcarsNew`
+```{r echo=FALSE}
+model4<- lm(mpg~am*wt+qsec, data=mtcarsNew)
+summary(model4)
+```
+Compared to Model3, model4's adjusted r squared increases by 2% and the RSE dropped from 2.084 to 1.805
+
+## Diagnostics II
+In fig. 5, the errors do not show any significant departure from normality and there is no systematic variation in the residuals. Infact, they align better on QQ plot line.
+```{r echo=FALSE, results="hide"}
+tail(sort(abs(round(dfbetas(model4)[,2],3))),5)
+     
+tail(sort(abs(round(hatvalues(model4),3))),5)  
+
+tail(sort(abs(round(dffits(model4),3))),5)
+```
+```{r echo=FALSE, results='hide'}
+CI <- confint(model4,"am", level=0.95)
+```
+Toyota Corolla seems to affect the predicted response by more than 1 point, but its removal does not affect the model's prediction accuracy.
+
+Using the model4, the estimated difference in Miles Per Gallon between Automatic and Manual Transmission is **`r round(summary(model4)$coefficients[2,1],2)`** (**`r paste(round(CI[1],2), round(CI[2],2), sep="-")`**) 
+
+## **Appendix**
+
+```{r fig1,include=FALSE,echo=FALSE,fig.width=5,fig.height=3,fig.cap="Histogram of Miles Per Gallon"}
+qplot(data=mtcars, x=mpg, binwidth=3, fill="red",ylab="Frequency")
+```
+
+```{r fig2,echo=FALSE,fig.width=5,fig.height=3,fig.cap="MPG vs Weight by Transmission"}   
+qplot(mpg, wt, data=mtcars, colour=factor(am))
+```
+
+```{r fig3,echo=FALSE,fig.width=5,fig.height=3,fig.cap="MPG vs weight by No. of Cylinders"}
+qplot(mpg, wt, data=mtcars, colour=factor(cyl))
+```
+
+```{r fig4,echo=FALSE,fig.cap="Model 3 diagnostics plot"}
+par(mfrow=c(2,2))
+plot(model3)
+```
+
+```{r fig5,echo=FALSE,fig.cap="Model4 diagnostics plot"}
+par(mfrow=c(2,2))
+plot(model4)
+```
+
+
