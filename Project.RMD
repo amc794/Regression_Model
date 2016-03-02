@@ -15,7 +15,7 @@ str(mtcars)
 ```{r, echo=FALSE, results='hide'}
 mtcars$carname <- row.names(mtcars)
 ```
-##Executive Summary##  
+##Executive Summary
 Using this dataset of 32 cars with 11 variables and forward selection regression modelling, manual transmission is better for fuel efficiency. The final model uses 4 features for prediction: transmission, weight, interaction between transmission and weight, and 1/4 mile time.
 
 Transmission type alone accounts for about 34% variability in fuel efficiency. The number of cylinders which has a good correlation with the miles consumed per gallon (`r cor(mtcars$mpg,mtcars$cyl)`) and other predictors in the dataset do not improve the predictive power of the model. The elimination of 3 outliers(Chrysler Imperial, Masserati Bora, and Fiat 128) with high leverage and influnece from the final model increases accuracy of prediction.Any further outlier deletion does not improve the prediction, and not advisable because of the size of the sample.
@@ -27,7 +27,7 @@ library(ggplot2)
 library(dplyr)
 library(knitr)
 ```
-## Forward model selection
+## Model selection
 ```{r echo=FALSE}
 model1 <- lm(mpg ~ am, data=mtcars)
 summary(model1)$coefficients
